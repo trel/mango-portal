@@ -22,7 +22,6 @@ class ComplexField {
    */
   constructor(name, data_status = "draft") {
     // properties of the schema itself
-    this.modal_id = `m-${name}-${data_status}`;
     this.initial_name = name;
     this.data_status = data_status;
     this.field_id_regex = "[a-zA-Z0-9_\\-]+";
@@ -45,6 +44,10 @@ class ComplexField {
 
   get prefix() {
     return `mgs__${this.name}`;
+  }
+
+  get modal_id() {
+    return `m-${this.prefix}-${this.data_status}`;
   }
 
   get field_ids() {
@@ -130,7 +133,7 @@ class ComplexField {
    * Add new fields based on uploaded JSON file.
    * @param {FieldInfo} data JSON representation of a field.
    */
-  add_fields_from_json(data, modal_id) {
+  add_fields_from_json(data) {
     Object.keys(data).forEach((field_id) => {
       let new_field = InputField.choose_class(this, null, [
         field_id,
@@ -142,7 +145,7 @@ class ComplexField {
     });
 
     bootstrap.Modal.getOrCreateInstance(
-      document.getElementById(modal_id)
+      document.getElementById(this.modal_id)
     ).toggle();
   }
 
@@ -205,8 +208,9 @@ class ComplexField {
     let form = this.form_div;
 
     // Check if any field is a duplicate
-    const has_duplicates = Object.values(this.fields).some(
-      (field) => field.is_duplicate
+    const has_duplicates = this.fields.some((field) => field.is_duplicate);
+    const has_wip_composites = this.fields.some(
+      (field) => field.minischema && field.minischema.wip.length > 0
     );
 
     // Buttons to update:
@@ -214,7 +218,7 @@ class ComplexField {
       this.constructor.name == "Schema"
         ? ["publish", "draft"].map((btn) => form.querySelector("button#" + btn)) // publish and draft for schemas
         : [form.querySelector("button#add")]; // "add/update" for a composite field
-    if (has_duplicates || this.wip.length > 0) {
+    if (has_duplicates || has_wip_composites) {
       buttons.forEach((btn) => btn.setAttribute("disabled", ""));
     } else {
       buttons.forEach((btn) => btn.removeAttribute("disabled"));
@@ -449,6 +453,7 @@ class ObjectEditor extends ComplexField {
         .querySelector("button#add")
         .setAttribute("disabled", "");
     }
+    this.composite.schema.toggle_saving();
   }
 
   set new_name(name) {
@@ -461,7 +466,10 @@ class ObjectEditor extends ComplexField {
       this.fields.map((field) => [field.id, field.editing_modal_id])
     );
     this.fields.forEach((field) => {
-      document.getElementById(current_ids[field.id]).id = new_ids[field.id];
+      const old_modal = document.getElementById(current_ids[field.id]);
+      if (old_modal != null) {
+        old_modal.id = new_ids[field.id];
+      }
     });
   }
 }
@@ -518,9 +526,8 @@ class Schema extends ComplexField {
    */
   from_json(data) {
     this.saved_json = data;
-    this.create_editor();
-
     super.from_json(data);
+    this.create_editor();
 
     // retrieve schema-specific information
     this.name = data.schema_name;
@@ -653,9 +660,9 @@ class Schema extends ComplexField {
     this.form.add_submit_action("publish", (e) => {
       e.preventDefault();
       // BS5 validity check
-      if (!form.form.checkValidity()) {
+      if (!this.form.form.checkValidity()) {
         e.stopPropagation();
-        form.form.classList.add("was-validated");
+        this.form.form.classList.add("was-validated");
       } else {
         // trigger confirmation message, which also has its hidden fields
         let second_sentence =
@@ -683,7 +690,7 @@ class Schema extends ComplexField {
             this.save_draft("publish");
           }
         );
-        form.form.classList.remove("was-validated");
+        this.form.form.classList.remove("was-validated");
       }
     });
 
