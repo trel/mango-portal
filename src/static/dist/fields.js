@@ -62,7 +62,7 @@ class InputField {
   }
 
   get editing_modal_id() {
-    return `${this.mode}-${this.schema.prefix}__${this.id}__${this.schema.data_status}`;
+    return `${this.mode}-${this.schema.prefix}-${this.id}-${this.schema.data_status}`;
   }
 
   /**
@@ -142,7 +142,7 @@ class InputField {
     this.schema.toggle_saving();
 
     // Identify the form with MovingViewers and the MovingViewer itself
-    const viewer = this.form_field.form;
+    const viewer = this.schema.field_box.querySelector(`#${this.id}`);
 
     // Update the title of the MovingViewer
     viewer.querySelector("h5").innerHTML = this.required
@@ -742,7 +742,7 @@ class InputField {
    * @returns {HTMLDivElement} Element that contains an illustration example and a button to activate an editor modal.
    */
   render() {
-    this.id = `${this.form_type}-temp`;
+    this.id = `${this.form_type}_temp`;
 
     // create the form to design the field and the modal that will host it
     this.create_editor();
@@ -805,43 +805,55 @@ class InputField {
         this.id,
         this.options_navbar ? this.temp_options : data
       ); // update the field
-      this.schema.update_field(this); // update the schema
+      this.update_field(); // update the schema
+      return this;
+    } else if (this.mode == "mod") {
+      this.new_name = new_id;
       return this;
     } else {
-      // if we are changing IDs or creating a new field altogether
+      // if we are creating a new field altogether
       // create a new field with the same type
-
       let clone = this.clone(new_id, data.get(`${this.id}-label`).trim());
+      console.log(this.temp_options, clone.temp_options);
       clone.recover_fields(
         this.id,
         this.options_navbar ? this.temp_options : data
       );
-
-      if (this.constructor.name == "ObjectInput") {
-        // this will have to change to adapt to creating filled-schemas (attached to new ids)
-        // clone.minischema = this.minischema;
-        clone.init_minischema();
-        this.minischema.fields.forEach((field) => {
-          let new_field = field.clone(field.id, field.title);
-          new_field.create_editor();
-          clone.minischema.fields.push(new_field);
-          field.delete_modal();
-        });
-        this.minischema.reset();
-      }
+      console.log(clone);
 
       // bring the current form, editor and contents to their original values
       this.reset();
 
       // set the mode of the new field, create form and modal that hosts the form
       clone.create_editor();
+      clone.add_to_schema();
 
       // register new field in the schema
-      if (this.mode == "add") {
-        clone.add_to_schema();
-      }
       return clone;
     }
+  }
+
+  set new_name(new_name) {
+    const card = this.schema.field_box.querySelector(`#${this.id}`);
+    function update_element_id(el, this_id) {
+      const { pre, pos } = el.id.match(
+        `(?<pre>[a-z_-]+-)?(?<id>${this_id})(?<pos>-[a-z_-]+)?`
+      ).groups;
+      if (!(pre == undefined && pos == undefined)) {
+        el.id = `${pre || ""}${new_name}${pos || ""}`;
+      }
+    }
+    card.querySelectorAll(`[id*="${this.id}"]`).forEach((el) => {
+      update_element_id(el, this.id);
+    });
+    card.id = new_name;
+    if (this.constructor.name != "ObjectInput") {
+      const modal = document.getElementById(this.editing_modal_id);
+      modal.querySelectorAll(`[id*="${this.id}"]`).forEach((el) => {
+        update_element_id(el, this.id);
+      });
+    }
+    this.id = new_name;
   }
 
   /**
@@ -1054,7 +1066,9 @@ class TypedInput extends InputField {
 
   update_field() {
     super.update_field();
-    this.form_field.form.firstChild.replaceChild(this.viewer_input());
+    this.schema.field_box
+      .querySelector(`#${this.id} .card-body`)
+      .firstChild.replaceWith(this.viewer_input());
   }
 
   get_form_div(key) {
@@ -1772,7 +1786,7 @@ class ObjectInput extends InputField {
     "This can contain any combination of the previous form elements.<br>";
 
   get editing_modal_id() {
-    return `form-${this.schema.prefix}__${this.id}`;
+    return `form-${this.schema.prefix}-${this.id}`;
   }
 
   /**
@@ -1918,7 +1932,7 @@ class ObjectInput extends InputField {
 
   render() {
     const clone = new ObjectInput(this.schema);
-    clone.id = `i${this.schema.empty_composite_idx}-composite-temp`;
+    clone.id = `i${this.schema.empty_composite_idx}ctemp`;
     this.schema.empty_composite_idx += 1;
     this.schema.add_wip(clone.id);
     clone.create_editor();
@@ -1932,6 +1946,8 @@ class ObjectInput extends InputField {
       clone.title = "TEMPORARY COMPOSITE FIELD";
       clone.add_to_schema();
       console.log(this.schema.modal_id);
+      console.log(clone);
+      console.log(this.schema.fields);
       bootstrap.Modal.getOrCreateInstance(
         document.getElementById(this.schema.modal_id)
       ).hide();
@@ -1954,24 +1970,17 @@ class ObjectInput extends InputField {
 
     // if we are updating an existing field without changing the ID
     this.title = data.get(`${this.id}-label`).trim();
+    this.form_field.form.parentElement.parentElement.querySelector(
+      ".card-header h5"
+    ).innerHTML = this.title;
     this.recover_fields(this.id, data); // update the field
 
     if (old_id == new_id) {
       this.update_field(); // update the schema
     } else {
+      this.new_name = new_id;
       this.minischema.new_name = new_id;
-      // this.id = new_id;
-      this.rename_form_fields;
     }
-  }
-
-  rename_form_fields(old_id) {
-    this.form_field.form
-      .querySelectorAll(`[id^='${old_id}-']`)
-      .forEach((input) => {
-        const suffix = input.id.split("-")[1];
-        input.id = `${this.id}-${suffix}`;
-      });
   }
 
   update_field() {
@@ -2119,7 +2128,9 @@ class MultipleInput extends InputField {
 
   update_field() {
     super.update_field();
-    this.form_field.form.firstChild.replaceWith(this.viewer_input());
+    this.schema.field_box
+      .querySelector(`#${this.id} .card-body`)
+      .firstChild.replaceWith(this.viewer_input());
     if (this.autocomplete_id != undefined) {
       this.activate_autocomplete();
     }
@@ -2620,11 +2631,7 @@ class MultipleInput extends InputField {
    */
   recover_fields(id, data) {
     // reset whatever values existing
-    this.values.values = [];
-
-    this.values.values = this.temp_options
-      .map((x) => x.trim())
-      .filter((x) => x.length > 0);
+    this.values.values = data.map((x) => x.trim()).filter((x) => x.length > 0);
 
     // if the form in the modal already exists
     if (this.options_navbar) {
