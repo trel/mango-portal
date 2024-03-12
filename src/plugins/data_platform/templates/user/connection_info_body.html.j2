@@ -97,11 +97,9 @@ def iinit(config, password):
             f.write(contents)
     env_file = os.getenv('IRODS_ENVIRONMENT_FILE', os.path.expanduser('~/.irods/irods_environment.json'))
     import irods
-    if irods.__version__ != "2.0.0":
-        print("You are not authenticated!")
-        print("Please update your irods client version, we'll remove support for 1.0.* soon!")
-        print('Or for now set "PAM" instead of "pam_password" for "irods_authentication_scheme" in config.')
-        exit()
+    if irods.__version__.startswith(("1.", "0.")):
+        print("You are using an outdated version of the python irods client. Please update to 2.0.0 or above for this script to function")
+        return
     put(env_file, config)
     with iRODSSession(irods_env_file=env_file, password=password) as session:
         put(iRODSSession.get_irods_password_file(), encode(session.pam_pw_negotiated[0], uid=1000))
@@ -145,7 +143,7 @@ with iRODSSession(irods_env_file=env_file) as session:
           </li>
         {% else %}
           <li>
-            Install <a href="https://ceifdoc.icts.kuleuven.be/lnx/tools/sshcerts/">certagent or kmk</a> on your local machine
+            Install <a href="https://admin.kuleuven.be/icts/services/ssh-cert">certagent or kmk</a> on your local machine
             and use it to retrieve an SSH certificate.
           </li>
         {% endif %}
