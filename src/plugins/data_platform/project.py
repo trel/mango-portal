@@ -392,8 +392,17 @@ def add_irods_project():
     token, _ = current_user_api_token()
     header = {"Authorization": "Bearer " + token}
 
+    response = requests.get(f"{API_URL}/v1/projects", headers=header)
+    response.raise_for_status()
+    projects = response.json()
+
     id = request.form.get("name")
 
+    for project in projects:
+        if project["name"] == id:
+            flash(f"Project {id} already exists! Please determine another project name.", "warning")
+            return redirect(url_for("data_platform_user_bp.login_openid_select_zone"))
+    
     response = requests.put(
         f"{API_URL}/v1/projects/{id}",
         headers=header,
