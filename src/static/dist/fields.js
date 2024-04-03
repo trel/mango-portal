@@ -942,7 +942,6 @@ class InputField {
     new_field.field_id = id;
     new_field.id = id;
 
-    new_field.update_id_regex(schema.field_id_regex);
     new_field.mode = "mod";
 
     // read the FieldInfo object to retrieve and register the data
@@ -1870,7 +1869,11 @@ class ObjectInput extends InputField {
    * @returns {HTMLDivElement}
    */
   viewer_input(active = false) {
-    return ComplexField.create_viewer(this.minischema, active);
+    this.minischema.viewer = ComplexField.create_viewer(
+      this.minischema,
+      active
+    );
+    return this.minischema.viewer;
   }
 
   /**
@@ -2205,9 +2208,11 @@ class MultipleInput extends InputField {
   }
 
   activate_autocomplete(editor = false) {
+    const viewer =
+      this.schema.viewer == undefined ? this.schema.form : this.schema.viewer;
     const parent_selector = editor
       ? this.schema.field_box.querySelector(`#${this.id}`)
-      : this.schema.card.querySelector(
+      : viewer.querySelector(
           `.input-view .mini-viewer[data-field-name='${this.id}']`
         );
     const new_selector = parent_selector.querySelector("input[type='search']");
