@@ -520,11 +520,11 @@ def convert_bytes_to_GB(size_bytes, conversion_to="GB"):
 
 def calculate_usage_percent(quota, usage):
     if quota == 0:
-        return "No quota set!"
+        return 0
     if quota > 0 and usage == 0:
-        return "0 %"
+        return 0
     usage_percent = (usage / quota) * 100
-    return f"{round(usage_percent, 2)} %"
+    return round(usage_percent, 2)
 
 
 @data_platform_project_bp.route("/data-platform/statistics", methods=["GET"])
