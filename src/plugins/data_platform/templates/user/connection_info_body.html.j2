@@ -35,7 +35,7 @@
           </dd>
         </dl>
         <p>
-          The provided password is valid for 4 hours only, refresh the page to get a
+          The provided password is valid until {{ info['expiration'] }}, refresh the page to get a
           new password.
         </p>
       </div>
@@ -70,7 +70,7 @@ cat > ~/.irods/irods_environment.json <<'EOF'
 {{ setup_json['linux'] }}
 EOF
 iinit -h | grep Version | grep -v -q 4.2. || sed -i 's/"irods_authentication_scheme": "pam_password"/"irods_authentication_scheme": "PAM"/' ~/.irods/irods_environment.json
-echo '{{ info['token'] }}' | iinit --ttl 168 >/dev/null && echo You are now authenticated to irods. Your session is valid for 168 hours.
+echo '{{ info['token'] }}' | iinit {% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}--ttl 168{% endif %} >/dev/null && echo You are now authenticated to irods.
 </code></pre>
       </div>
       <div class="tab-pane container fade p-1" id="windows">
@@ -79,33 +79,29 @@ echo '{{ info['token'] }}' | iinit --ttl 168 >/dev/null && echo You are now auth
           the necessary files to authenticate against irods. The script assumes
           that you installed the <code>python-irodsclient</code>. It will write
           the irods environment file and a password file. The written password
-          file will grant access for 60 hours.
+          file will be valid until {{ info['expiration'] }}.
         </p>
 <pre><code>config = """
 {{ setup_json['windows'] }}
 """
 password = "{{ info['token'] }}"
 
-import os, os.path
+import os, os.path, irods
 from irods.session import iRODSSession
 from irods.password_obfuscation import encode
 
-def iinit(config, password):
-    def put(file, contents):
-        os.makedirs(os.path.dirname(file), exist_ok=True)
-        with open(file, "w") as f:
-            f.write(contents)
-    env_file = os.getenv('IRODS_ENVIRONMENT_FILE', os.path.expanduser('~/.irods/irods_environment.json'))
-    import irods
-    if irods.__version__.startswith(("1.", "0.")):
-        print("You are using an outdated version of the python irods client. Please update to 2.0.0 or above for this script to function")
-        return
-    put(env_file, config)
-    with iRODSSession(irods_env_file=env_file, password=password) as session:
-        put(iRODSSession.get_irods_password_file(), encode(session.pam_pw_negotiated[0], uid=1000))
-        print("You have successfully authenticated. Use iRODSSession(irods_env_file=" + repr(env_file) +") to start interacting with iRODS.")
+if irods.__version__.startswith(("1.", "0.")):
+  print("You are using an outdated version of the python irods client. Please update to 2.0.0 as soon as possible")
 
-iinit(config, password)
+def put(file, contents):
+  os.makedirs(os.path.dirname(file), exist_ok=True)
+  with open(file, "w") as f:
+    f.write(contents)
+
+env_file = os.getenv('IRODS_ENVIRONMENT_FILE', os.path.expanduser('~/.irods/irods_environment.json'))
+
+put(env_file, config)
+put(iRODSSession.get_irods_password_file(), encode(password, uid=1000))
 </code></pre>
       <!--
       <p>See below how to get started with the python client.</p>
