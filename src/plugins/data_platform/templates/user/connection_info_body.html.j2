@@ -35,7 +35,7 @@
           </dd>
         </dl>
         <p>
-          The provided password is valid until {{ info['expiration'] }}, refresh the page to get a
+          The provided password is valid until {{ info['expiration']|format_datetime }}, refresh the page to get a
           new password.
         </p>
       </div>
@@ -69,7 +69,9 @@
 cat > ~/.irods/irods_environment.json <<'EOF'
 {{ setup_json['linux'] }}
 EOF
+{% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}
 iinit -h | grep Version | grep -v -q 4.2. || sed -i 's/"irods_authentication_scheme": "pam_password"/"irods_authentication_scheme": "PAM"/' ~/.irods/irods_environment.json
+{% endif %}
 echo '{{ info['token'] }}' | iinit {% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}--ttl 168{% endif %} >/dev/null && echo You are now authenticated to irods.
 </code></pre>
       </div>
@@ -79,7 +81,7 @@ echo '{{ info['token'] }}' | iinit {% if info['irods_environment']['irods_authen
           the necessary files to authenticate against irods. The script assumes
           that you installed the <code>python-irodsclient</code>. It will write
           the irods environment file and a password file. The written password
-          file will be valid until {{ info['expiration'] }}.
+          file will be valid until {{ info['expiration']|format_datetime }}.
         </p>
 <pre><code>config = """
 {{ setup_json['windows'] }}
@@ -101,7 +103,12 @@ def put(file, contents):
 env_file = os.getenv('IRODS_ENVIRONMENT_FILE', os.path.expanduser('~/.irods/irods_environment.json'))
 
 put(env_file, config)
+{% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}
+with iRODSSession(irods_env_file=env_file, password=password) as session:
+  put(iRODSSession.get_irods_password_file(), encode(session.pam_pw_negotiated[0], uid=1000))
+{% else %}
 put(iRODSSession.get_irods_password_file(), encode(password, uid=1000))
+{% endif %}
 </code></pre>
       <!--
       <p>See below how to get started with the python client.</p>
