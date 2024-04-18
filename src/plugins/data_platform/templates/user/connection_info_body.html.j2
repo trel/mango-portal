@@ -101,14 +101,13 @@ def put(file, contents):
     f.write(contents)
 
 env_file = os.getenv('IRODS_ENVIRONMENT_FILE', os.path.expanduser('~/.irods/irods_environment.json'))
-
 put(env_file, config)
-{% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}
+{% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' -%}
 with iRODSSession(irods_env_file=env_file, password=password) as session:
   put(iRODSSession.get_irods_password_file(), encode(session.pam_pw_negotiated[0], uid=1000))
-{% else %}
+{% else -%}
 put(iRODSSession.get_irods_password_file(), encode(password, uid=1000))
-{% endif %}
+{% endif -%}
 </code></pre>
       <!--
       <p>See below how to get started with the python client.</p>
