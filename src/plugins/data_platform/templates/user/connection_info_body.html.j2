@@ -100,7 +100,7 @@ from irods.password_obfuscation import encode
 
 if irods.__version__.startswith(("1.", "0.")):
   print("You are using an outdated version of the python irods client. Please update to 2.0.0 as soon as possible")
-{% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' -%}
+{%- if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}
   config = config.replace("pam_password", "PAM")
 {%- endif %}
 
