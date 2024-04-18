@@ -80,8 +80,14 @@ echo '{{ info['token'] }}' | iinit {% if info['irods_environment']['irods_authen
           Start a python interactive shell, and paste the snippet below to setup
           the necessary files to authenticate against irods. The script assumes
           that you installed the <code>python-irodsclient</code>. It will write
-          the irods environment file and a password file. The written password
-          file will be valid until {{ info['expiration']|format_timestamp }}.
+          the irods environment file and a password file.
+          {% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}
+          The validity period of the password depends on server configuration
+          and the version of python-irodsclient. For version 1.0.0, this is 60 hours,
+          for version 2.0.0 only 2 minutes.
+          {% else %}
+          The written password file will be valid until {{ info['expiration']|format_timestamp }}.
+          {% endif %}
         </p>
 <pre><code>config = """
 {{ setup_json['windows'] }}
@@ -94,6 +100,9 @@ from irods.password_obfuscation import encode
 
 if irods.__version__.startswith(("1.", "0.")):
   print("You are using an outdated version of the python irods client. Please update to 2.0.0 as soon as possible")
+{% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' -%}
+  config = config.replace("pam_password", "PAM")
+{%- endif %}
 
 def put(file, contents):
   os.makedirs(os.path.dirname(file), exist_ok=True)
