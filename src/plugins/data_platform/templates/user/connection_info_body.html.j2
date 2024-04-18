@@ -57,7 +57,7 @@
         </p>
         <p>
           Alternatively, you can copy paste the snippet below to configure an irods client under Linux.
-          The irods session is valid {% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}for one week{% else %}until {{ info['expiration']|format_timestamp }}{% endif %}."
+          The irods session is valid {% if info['irods_environment']['irods_authentication_scheme'] == 'pam_password' %}for one week{% else %}until {{ info['expiration']|format_timestamp }}{% endif %}.
         </p>
       {% else %}
         <p class="mt-3">
