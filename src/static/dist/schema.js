@@ -168,9 +168,6 @@ class ComplexField {
    * Create a modal that offers the different fields that can be added and fill it when shown.
    */
   display_options() {
-    // this.data_status = this.set_data_status(); // to make sure it's correct (but maybe this is redundant)
-    // this.ls_id = `_mgs_${this.card_id}_${this.data_status}`;
-
     // create a div to fill in with the different field examples
     let formTemp = Field.quick("div", "formContainer");
     formTemp.id = this.data_status + "-templates";
@@ -197,13 +194,6 @@ class ComplexField {
         formTemp.replaceChild(from_json_load, formTemp.lastChild);
       }
     });
-    // if (this.constructor.name == "ObjectEditor") {
-    //   this_modal.addEventListener("hidden.bs.modal", () => {
-    //     bootstrap.Modal.getOrCreateInstance(
-    //       document.getElementById(this.card_id)
-    //     ).show();
-    //   });
-    // }
   }
 
   /**
@@ -445,7 +435,7 @@ class ObjectEditor extends ComplexField {
   set_data_status() {
     return String(this.composite.data_status).endsWith("undefined")
       ? "undefined"
-      : `object-${this.composite.data_status}`;
+      : this.data_status;
   }
 
   get card() {
@@ -1181,7 +1171,6 @@ class Schema extends ComplexField {
       return;
     }
     this.fields_to_json();
-    console.log(this.properties);
     const to_save = {
       title: this.temp_title ? this.temp_title : this.title,
       properties: this.properties,
@@ -1475,12 +1464,20 @@ class SchemaForm {
    * @param {Object<String,FieldInfo>} schema_json Collection of Object-versions of fields.
    */
   from_json(schema_json) {
+    function expand_composites(composite_field) {
+      composite_field.minischema = new ObjectEditor(composite_field);
+      composite_field.minischema.from_json(composite_field.json_source);
+      composite_field.minischema.fields.forEach((subfield) => {
+        if (subfield.form_type == "object") {
+          expand_composites(subfield);
+        }
+      });
+    }
     // Go through each field in the JSON file and create its InputField
     this.fields = Object.entries(schema_json).map((entry) => {
       let new_field = InputField.choose_class(this, null, entry);
-      if (new_field.constructor.name == "ObjectInput") {
-        new_field.minischema = new ObjectEditor(new_field);
-        new_field.minischema.from_json(new_field.json_source);
+      if (new_field.form_type == "object") {
+        expand_composites(new_field);
       }
       return new_field;
     });
@@ -1614,9 +1611,8 @@ class SchemaForm {
     // Identify the fields that belong to this particular composite fields
     let existing_values = annotated_data[obj];
     let raw_name = obj.match(`${prefix}.(?<field>[^\.]+)`).groups.field;
-    let top_level_names = fields[raw_name].minischema.field_ids.map(
-      (x) => `${obj}.${x}`
-    );
+    let minischema = fields.filter((f) => f.id == raw_name)[0].minischema;
+    let top_level_names = minischema.field_ids.map((x) => `${obj}.${x}`);
     let first_unit =
       "__unit__" in existing_values[0]
         ? String(existing_values[0].__unit__[0])
@@ -1668,13 +1664,7 @@ class SchemaForm {
       );
       // Go through each nested composite field and register its subfields, with an accumulated prefix
       nested.forEach((fid) =>
-        this.register_object(
-          fid,
-          object,
-          fields[raw_name].minischema.fields,
-          obj,
-          viewer
-        )
+        this.register_object(fid, object, minischema.fields, obj, viewer)
       );
     });
   }
@@ -1880,6 +1870,7 @@ class SchemaForm {
    */
   static flatten_object(object_editor, flattened_id) {
     // go through each field
+    console.log(object_editor);
     object_editor.fields.forEach((field) => {
       // flatten the id
       let subfield_flattened = `${flattened_id}.${field.id}`;
