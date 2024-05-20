@@ -257,7 +257,7 @@ def index():
     "/collection/browse", defaults={"collection": None}, strict_slashes=False
 )
 @browse_bp.route("/collection/browse/<path:collection>")
-def collection_browse(collection):
+def collection_browse(collection = None):
     """returns the list of objects and subcollections for the given
     collection.
 
