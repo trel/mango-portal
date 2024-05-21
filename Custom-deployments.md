@@ -180,7 +180,7 @@ TIKA_URL = os.environ.get("TIKA_URL", "http://localhost:9998/")
 
 When using the irods_demo docker setup together with the generic mango portal config locally (say Linux/WSL on your laptop), there are some attention points:
 
-### Exposing port 1247
+### Exposing port 1247 for a localhost ManGO portal deployment
 
 By default port 1247 is not exposed to localhost. This is because of the way docker compose works. You can alter the file `docker-comose.yml` in the service definition of `irods-catalog-provider` and add the ports 1247 explicitely
 
