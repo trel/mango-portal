@@ -189,6 +189,7 @@ def init_and_secure_views():
         "data_platform_project_bp.deploy_project",
         "data_platform_project_bp.api_token",
         "data_platform_project_bp.add_irods_project",
+        "data_platform_project_bp.add_cold_project",
         "data_platform_project_bp.add_generic_project",
         "data_platform_project_bp.add_rdr_project",
         "data_platform_project_bp.modify_project",
