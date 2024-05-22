@@ -180,9 +180,9 @@ TIKA_URL = os.environ.get("TIKA_URL", "http://localhost:9998/")
 
 When using the irods_demo docker setup together with the generic mango portal config locally (say Linux/WSL on your laptop), there are some attention points:
 
-### Exposing port 1247 for a localhost ManGO portal deployment
+### Exposing port 1247 and more for a localhost ManGO portal deployment
 
-By default port 1247 is not exposed to localhost. This is because of the way docker compose works. You can alter the file `docker-comose.yml` in the service definition of `irods-catalog-provider` and add the ports 1247 explicitely
+By default ports 1247, 1248, 20000 range are not exposed to localhost. This is because of the way docker compose works. You can alter the file `docker-comose.yml` in the service definition of `irods-catalog-provider` and add the ports explicitely. Also, a fixed hostname for the container is a better option configure your /etc/hosts
 
 ```yaml
     irods-catalog-provider:
@@ -190,17 +190,19 @@ By default port 1247 is not exposed to localhost. This is because of the way doc
             context: irods_catalog_provider
         ports:
             - "1247:1247"
+            - "1248:1248"
+            - "20000-20199:20000-20199"
+        hostname: irods_demo
 ```
 
 ### Only rodsadmin can login
 
-By default, the group `public` is no read access to the zone `/tempZone`, nor the sub collections collections `/tempZone/home` and `/tempZone/trash/home`
+By default, the group `public` has no read access to the zone `/tempZone/home` and `/tempZone/trash/home`
 
-You should add read access using the follwing by using iCommands as rodsadmin (by loggin in the icommands container):
+You should add read access as rods admin in the ManGO portal for this public group or by using iCommands as rodsadmin:
 
 ```bash
 ichmod read public /tempZone
 ichmod read public /tempZone/home
 ichmod read public /tempZone/trash
 ichmod read public /tempZone/trash/home
-```
