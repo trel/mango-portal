@@ -413,6 +413,6 @@ main_landing_route_module = importlib.import_module(
 )
 
 app.add_url_rule(
-    "/", view_func=getattr(main_landing_route_module, main_landing_route["function"])
+    "/", endpoint = "index", view_func=getattr(main_landing_route_module, main_landing_route["function"])
 )
 

@@ -6,6 +6,8 @@ Furthermore, there are extension points and configuration options to fully custo
 
 The main parameter for the overall configuration can be set via an environt variable `MANGO_CONFIG`. If this is not set, the application will try to read from the default `config.py`
 
+> i See also some [notes](#notes-when-using-irods_demo-in-a-local-setup) when using a default/demo setup of iRODS 
+
 ## Plugins and activation
 
 Plugins are modules containing at least one Flask `blueprint` and are activated via the variable `MANGO_PLUGIN_BLUEPRINTS`. This is a list of modules and blueprints that is imported dynamically by the application. If you leave this empty, obviously no plugins will be loaded.
@@ -53,7 +55,10 @@ Authentication is possible for generic installations in development mode or by u
 
 ### Local development mode
 
-When specifyng `MANGO_AUTH=localdev` either as an environment variable or by configuration in `MANGO_CONFIG`, the zone and session parameters are read from `~/.irods/irods_environment.json` and a login using those local credentials is performed automatically. The provided startup script `src/run_waitress_generic_local.sh` has this configuration
+When specifyng `MANGO_AUTH=localdev` either as an environment variable or by configuration in `MANGO_CONFIG`, the zone and session parameters are read from `~/.irods/irods_environment.json` and a login using those local credentials is performed automatically. 
+
+For a vanilla iRODS installation like the official irods_demo docker setup [https://github.com/irods/irods_demo/](https://github.com/irods/irods_demo/), the defult authentication method should be set to `MANGO_AUTH=login`
+The provided startup script `src/run_waitress_generic_local.sh` has this configuration and is actually suited to be used out of the box against a irods_demo docker setup. 
 
 ### Basic authentication
 
@@ -82,6 +87,11 @@ MANGO_MAIN_LANDING_ROUTE = {
     "module": "plugins.user_tantra.realm", 
     "function": "index"
 }
+```
+
+In oder to have the collection view as default, you can use 
+```python
+MANGO_MAIN_LANDING_ROUTE = {"module": "kernel.common.browse", "function": "collection_browse"}
 ```
 
 ## Template overrides
@@ -165,3 +175,34 @@ For the ManGO portal, the tika URL needs to be specified in `MANGO_CONFIG` with 
 ```python
 TIKA_URL = os.environ.get("TIKA_URL", "http://localhost:9998/")
 ```
+
+## Notes when using irods_demo in a local setup
+
+When using the irods_demo docker setup together with the generic mango portal config locally (say Linux/WSL on your laptop), there are some attention points:
+
+### Exposing port 1247 and more for a localhost ManGO portal deployment
+
+By default ports 1247, 1248, 20000 range are not exposed to localhost. This is because of the way docker compose works. You can alter the file `docker-comose.yml` in the service definition of `irods-catalog-provider` and add the ports explicitely. Also, a fixed hostname for the container is a better option configure your /etc/hosts
+
+```yaml
+    irods-catalog-provider:
+        build:
+            context: irods_catalog_provider
+        ports:
+            - "1247:1247"
+            - "1248:1248"
+            - "20000-20199:20000-20199"
+        hostname: irods_demo
+```
+
+### Only rodsadmin can login
+
+By default, the group `public` has no read access to the zone `/tempZone/home` and `/tempZone/trash/home`
+
+You should add read access as rods admin in the ManGO portal for this public group or by using iCommands as rodsadmin:
+
+```bash
+ichmod read public /tempZone
+ichmod read public /tempZone/home
+ichmod read public /tempZone/trash
+ichmod read public /tempZone/trash/home
