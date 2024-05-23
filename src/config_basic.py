@@ -37,7 +37,7 @@ HOSTNAME = os.environ.get("HOSTNAME", "unnamed-host")
 
 MANGO_OVERRIDE_TEMPLATE_RULES_CONFIG = "config/template_override_rules_basic.yml"
 
-MANGO_ADMINS = [] # list of usernames that would be considered ManGO portal admins
+MANGO_ADMINS = ["rods"] # list of usernames that would be considered ManGO portal admins
 
 MANGO_PLUGIN_BLUEPRINTS = [
    {"module": "plugins.basic_user_group_manager.admin", "blueprint": "basic_user_group_manager_admin_bp"},

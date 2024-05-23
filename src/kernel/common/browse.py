@@ -267,8 +267,13 @@ def read_file_in_chunks(file_posix_path: str, delete_after=False):
 
 
 def index():
+    view_template = get_template_override_manager(
+        g.irods_session.zone
+    ).get_template_for_catalog_item(
+        g.irods_session.collections.get(f"/{g.irods_session.zone}"), "index.html.j2"
+    )
     return render_template(
-        "index.html.j2",
+        view_template,
     )
 
 
